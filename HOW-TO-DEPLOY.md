@@ -17,7 +17,7 @@ If you're following this guide to implement the tool for a National Organization
 
 ### Set up your local computer
 
-1. Ideally, you are running these instructions from a Mac (MacOS) or Linux computer; if you're using a Windows PC, [make sure you can run shell script files (.sh)](https://superuser.com/questions/120045/how-to-execute-sh-file-on-windows).
+1. Ideally, you are running these instructions from a Mac (MacOS) or Linux computer; if you're using a Windows PC, install [Git for Windows](https://git-scm.com/download/win) (including Git Bash) or another Bash-compatible shell and make sure the `bash` command is available in the VS Code terminal. The VS Code deployment tasks invoke the scripts through `bash`; they do not open the `.sh` files directly.
 1. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html).
 1. Open your terminal (command prompt) and [configure a **named profile**](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) with the credentials (access keys) linked to your AWS account. You can choose any name for your profile, but make sure to use it consistently later on.
 

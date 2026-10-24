@@ -13,8 +13,8 @@
     {
       "label": "Deploy a back-end environment",
       "type": "shell",
-      "command": "./deploy.sh",
-      "args": ["${input:environment}"],
+      "command": "bash",
+      "args": ["deploy.sh", "${input:environment}"],
       "group": "build",
       "options": { "cwd": "back-end" },
       "presentation": {
@@ -25,7 +25,8 @@
     {
       "label": "Quickly deploy Lambda fn source code changed (dev back-end)",
       "type": "shell",
-      "command": "./deploy.sh quick",
+      "command": "bash",
+      "args": ["deploy.sh", "quick"],
       "group": "build",
       "options": { "cwd": "back-end" },
       "presentation": {
@@ -47,8 +48,8 @@
     {
       "label": "Release a front-end environment",
       "type": "shell",
-      "command": "./release.sh",
-      "args": ["${input:environment}"],
+      "command": "bash",
+      "args": ["release.sh", "${input:environment}"],
       "group": "build",
       "options": { "cwd": "front-end" },
       "presentation": {
