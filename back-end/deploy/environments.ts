@@ -9,8 +9,17 @@ export const DOMAIN = 'assembly.esn.hu';
 /**
  * An additional custom domain to use.
  */
-export const PROD_CUSTOM_DOMAIN: string | null = null;
-export const SES_SOURCE_ADDRESS = 'noreply@assembly.esn.hu';
+export const PROD_CUSTOM_DOMAIN: string | null = 'assembly.esn.hu';
+/**
+ * Use `external` when DNS records are managed outside AWS, or `route53` to
+ * let AWS manage hosted-zone records and certificate validation.
+ */
+export const DNS_MODE: DnsMode = 'external';
+
+export const SES_SOURCE_ADDRESS = {
+  external: 'noreply@assembly.esn.hu',
+  route53: `no-reply@${DOMAIN.split('.').slice(-2).join('.')}`
+}[DNS_MODE];
 
 export const parameters: Parameters = {
   project: PROJECT,
@@ -21,7 +30,10 @@ export const parameters: Parameters = {
   webSocketCertificateARN: 'arn:aws:acm:eu-central-1:167975317134:certificate/15738515-e2e3-48d6-9bc1-58316059ad1e',
   frontEndCertificateARN: 'arn:aws:acm:us-east-1:167975317134:certificate/ced7b4f9-38d0-4c6d-b36f-15bea0906824',
   mediaCertificateARN: 'arn:aws:acm:us-east-1:167975317134:certificate/ced7b4f9-38d0-4c6d-b36f-15bea0906824',
-  sesIdentityARN: 'arn:aws:ses:eu-central-1:167975317134:identity/noreply@assembly.esn.hu'
+  sesIdentityARN: 'arn:aws:ses:eu-central-1:167975317134:identity/noreply@assembly.esn.hu',
+  sesNotificationTopicARN:
+    'arn:aws:sns:eu-central-1:167975317134:esn-assembly-hu-ses-DomainIdentitySesNotificationTopic44F98B89-2VwjalQIQWVy',
+  dnsMode: DNS_MODE
 };
 
 export const stages: { [stage: string]: Stage } = {
@@ -62,8 +74,12 @@ export interface Parameters {
   apiCertificateARN?: string;
   webSocketCertificateARN?: string;
   mediaCertificateARN?: string;
-  sesIdentityARN: string;
+  sesIdentityARN?: string;
+  sesNotificationTopicARN?: string;
+  dnsMode: DnsMode;
 }
+
+export type DnsMode = 'route53' | 'external';
 
 export interface Stage {
   /**

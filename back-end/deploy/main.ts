@@ -260,18 +260,21 @@ const createApp = async (): Promise<void> => {
     env,
     mediaBucketName: `${parameters.project}-media`,
     mediaDomain: parameters.mediaDomain,
+    dnsMode: parameters.dnsMode,
     certificateArn: parameters.mediaCertificateARN
   });
 
   const apiDomainStack = new ApiDomainStack(app, `${parameters.project}-api-domain`, {
     env,
     domain: parameters.apiDomain,
+    dnsMode: parameters.dnsMode,
     certificateArn: parameters.apiCertificateARN
   });
 
   const webSocketApiDomainStack = new ApiDomainStack(app, `${parameters.project}-socket-api-domain`, {
     env,
     domain: parameters.webSocketApiDomain,
+    dnsMode: parameters.dnsMode,
     certificateArn: parameters.webSocketCertificateARN
   });
 
@@ -279,7 +282,10 @@ const createApp = async (): Promise<void> => {
     env,
     project: parameters.project,
     identity: SES_SOURCE_ADDRESS,
-    identityArn: parameters.sesIdentityARN
+    identityArn: parameters.sesIdentityARN,
+    notificationTopicArn: parameters.sesNotificationTopicARN,
+    dnsMode: parameters.dnsMode,
+    domain: parameters.apiDomain
   });
 
   //
@@ -313,7 +319,8 @@ const createApp = async (): Promise<void> => {
     stage: STAGE,
     domain: STAGE_VARIABLES.domain,
     alternativeDomains: STAGE_VARIABLES.alternativeDomains,
-    certificateARN: parameters.frontEndCertificateARN
+    certificateARN: parameters.frontEndCertificateARN,
+    dnsMode: parameters.dnsMode
   });
 };
 createApp();

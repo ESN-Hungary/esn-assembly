@@ -6,6 +6,8 @@ import * as Lambda from 'aws-cdk-lib/aws-lambda';
 import * as S3 from 'aws-cdk-lib/aws-s3';
 import * as S3N from 'aws-cdk-lib/aws-s3-notifications';
 import * as ACM from 'aws-cdk-lib/aws-certificatemanager';
+import * as Route53 from 'aws-cdk-lib/aws-route53';
+import * as Route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as CloudFront from 'aws-cdk-lib/aws-cloudfront';
 import * as CloudFrontOrigins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as IAM from 'aws-cdk-lib/aws-iam';
@@ -14,6 +16,7 @@ export interface MediaProps extends cdk.StackProps {
   mediaBucketName: string;
   mediaDomain: string;
   certificateArn?: string;
+  dnsMode: 'route53' | 'external';
 }
 
 export class MediaStack extends cdk.Stack {
@@ -83,7 +86,7 @@ export class MediaStack extends cdk.Stack {
       })
     );
 
-    createCloudFrontDistributionForMediaBucket(this, s3MediaBucket, props.mediaDomain, props.certificateArn);
+    createCloudFrontDistributionForMediaBucket(this, s3MediaBucket, props.mediaDomain, props.dnsMode, props.certificateArn);
   }
 }
 
@@ -192,9 +195,22 @@ const createCloudFrontDistributionForMediaBucket = (
   scope: Construct,
   mediaBucket: S3.Bucket,
   mediaDomain: string,
+  dnsMode: 'route53' | 'external',
   certificateArn?: string
 ): void => {
-  if (!certificateArn) throw new Error(`Missing CloudFront certificate ARN for ${mediaDomain}`);
+  const zone = dnsMode === 'route53'
+    ? Route53.HostedZone.fromLookup(scope, 'HostedZone', { domainName: mediaDomain.split('.').slice(-2).join('.') })
+    : undefined;
+  const certificate = dnsMode === 'route53'
+    ? new ACM.DnsValidatedCertificate(scope, 'MediaCertificate', {
+        domainName: mediaDomain,
+        hostedZone: zone!,
+        region: 'us-east-1'
+      })
+    : certificateArn
+      ? ACM.Certificate.fromCertificateArn(scope, 'CloudFrontMediaCertificate', certificateArn)
+      : undefined;
+  if (!certificate) throw new Error(`Missing CloudFront certificate ARN for ${mediaDomain}`);
 
   const mediaDistributionOAI = new CloudFront.OriginAccessIdentity(scope, 'DistributionOAI', {
     comment: `OAI for https://${mediaDomain}`
@@ -211,8 +227,15 @@ const createCloudFrontDistributionForMediaBucket = (
     },
     domainNames: [mediaDomain],
     priceClass: CloudFront.PriceClass.PRICE_CLASS_100,
-    certificate: ACM.Certificate.fromCertificateArn(scope, 'CloudFrontMediaCertificate', certificateArn)
+    certificate
   });
 
   new cdk.CfnOutput(scope, 'MediaCloudFrontDomainName', { value: mediaDistribution.distributionDomainName });
+  if (zone) {
+    new Route53.ARecord(scope, 'MediaDomainRecord', {
+      zone,
+      recordName: mediaDomain,
+      target: Route53.RecordTarget.fromAlias(new Route53Targets.CloudFrontTarget(mediaDistribution))
+    });
+  }
 };
