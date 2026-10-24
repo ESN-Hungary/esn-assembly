@@ -9,16 +9,19 @@ export const DOMAIN = 'assembly.esn.hu';
 /**
  * An additional custom domain to use.
  */
-export const PROD_CUSTOM_DOMAIN: string | null = 'assembly.esn.hu'; // in case of first creation, use: `null`
+export const PROD_CUSTOM_DOMAIN: string | null = null;
+export const SES_SOURCE_ADDRESS = 'noreply@assembly.esn.hu';
 
 export const parameters: Parameters = {
   project: PROJECT,
   apiDomain: 'api.'.concat(DOMAIN),
   webSocketApiDomain: 'socket.'.concat(DOMAIN),
   mediaDomain: 'media.'.concat(DOMAIN),
-  frontEndCertificateARN: PROD_CUSTOM_DOMAIN
-    ? 'arn:aws:acm:us-east-1:167975317134:certificate/ced7b4f9-38d0-4c6d-b36f-15bea0906824'
-    : undefined
+  apiCertificateARN: 'arn:aws:acm:eu-central-1:167975317134:certificate/341cdb01-d699-4fa1-8065-e747e071f96a',
+  webSocketCertificateARN: 'arn:aws:acm:eu-central-1:167975317134:certificate/15738515-e2e3-48d6-9bc1-58316059ad1e',
+  frontEndCertificateARN: 'arn:aws:acm:us-east-1:167975317134:certificate/ced7b4f9-38d0-4c6d-b36f-15bea0906824',
+  mediaCertificateARN: 'arn:aws:acm:us-east-1:167975317134:certificate/ced7b4f9-38d0-4c6d-b36f-15bea0906824',
+  sesIdentityARN: 'arn:aws:ses:eu-central-1:167975317134:identity/noreply@assembly.esn.hu'
 };
 
 export const stages: { [stage: string]: Stage } = {
@@ -56,6 +59,10 @@ export interface Parameters {
    * The custom front-end certificate ARN to use, to support alternative domains.
    */
   frontEndCertificateARN?: string;
+  apiCertificateARN?: string;
+  webSocketCertificateARN?: string;
+  mediaCertificateARN?: string;
+  sesIdentityARN: string;
 }
 
 export interface Stage {

@@ -9,7 +9,7 @@ import { SESStack } from './ses-stack';
 import { ResourceController, ApiStack, DDBTable } from './api-stack';
 import { FrontEndStack } from './front-end-stack';
 
-import { parameters, stages, Stage, PROD_CUSTOM_DOMAIN } from './environments';
+import { parameters, stages, Stage, PROD_CUSTOM_DOMAIN, SES_SOURCE_ADDRESS } from './environments';
 
 //
 // RESOURCES
@@ -259,23 +259,27 @@ const createApp = async (): Promise<void> => {
   const mediaStack = new MediaStack(app, `${parameters.project}-media`, {
     env,
     mediaBucketName: `${parameters.project}-media`,
-    mediaDomain: parameters.mediaDomain
+    mediaDomain: parameters.mediaDomain,
+    certificateArn: parameters.mediaCertificateARN
   });
 
   const apiDomainStack = new ApiDomainStack(app, `${parameters.project}-api-domain`, {
     env,
-    domain: parameters.apiDomain
+    domain: parameters.apiDomain,
+    certificateArn: parameters.apiCertificateARN
   });
 
   const webSocketApiDomainStack = new ApiDomainStack(app, `${parameters.project}-socket-api-domain`, {
     env,
-    domain: parameters.webSocketApiDomain
+    domain: parameters.webSocketApiDomain,
+    certificateArn: parameters.webSocketCertificateARN
   });
 
   const sesStack = new SESStack(app, `${parameters.project}-ses`, {
     env,
     project: parameters.project,
-    domain: parameters.apiDomain
+    identity: SES_SOURCE_ADDRESS,
+    identityArn: parameters.sesIdentityARN
   });
 
   //
@@ -293,6 +297,7 @@ const createApp = async (): Promise<void> => {
     tables,
     mediaBucketArn: mediaStack.mediaBucketArn,
     ses: { identityArn: sesStack.identityArn, notificationTopicArn: sesStack.notificationTopicArn },
+    sesSourceAddress: SES_SOURCE_ADDRESS,
     removalPolicy: STAGE_VARIABLES.destroyDataOnDelete ? cdk.RemovalPolicy.DESTROY : cdk.RemovalPolicy.RETAIN,
     lambdaLogLevel: STAGE_VARIABLES.logLevel ?? 'INFO',
     appDomain: STAGE === 'prod' && PROD_CUSTOM_DOMAIN ? PROD_CUSTOM_DOMAIN : STAGE_VARIABLES.domain

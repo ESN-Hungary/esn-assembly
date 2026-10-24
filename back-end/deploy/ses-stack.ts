@@ -1,10 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { VerifySesDomain } from '@iter-idea/ses-verify-identities';
+import * as SNS from 'aws-cdk-lib/aws-sns';
+import * as IAM from 'aws-cdk-lib/aws-iam';
 
 export interface SESProps extends cdk.StackProps {
   project: string;
-  domain: string;
+  identity: string;
+  identityArn: string;
 }
 
 export class SESStack extends cdk.Stack {
@@ -14,14 +16,29 @@ export class SESStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: SESProps) {
     super(scope, id, props);
 
-    const region = cdk.Stack.of(this).region;
-    const account = cdk.Stack.of(this).account;
-
-    const domainName = props.domain.split('.').slice(-2).join('.');
-    const sesDomain = new VerifySesDomain(this, 'DomainIdentity', { domainName });
-
-    this.identityArn = `arn:aws:ses:${region}:${account}:identity/${domainName}`;
-    this.notificationTopicArn = sesDomain.notificationTopic.topicArn;
+    this.identityArn = props.identityArn;
+    const notificationTopic = new SNS.Topic(this, 'SESNotificationTopic', {
+      topicName: `${props.project}-ses-notifications`
+    });
+    notificationTopic.addToResourcePolicy(
+      new IAM.PolicyStatement({
+        principals: [new IAM.ServicePrincipal('ses.amazonaws.com')],
+        actions: ['sns:Publish'],
+        resources: [notificationTopic.topicArn],
+        conditions: { ArnLike: { 'aws:SourceArn': this.identityArn } }
+      })
+    );
+    this.notificationTopicArn = notificationTopic.topicArn;
+    for (const notificationType of ['Bounce', 'Complaint', 'Delivery']) {
+      new cdk.CfnResource(this, `SES${notificationType}Notification`, {
+        type: 'AWS::SES::IdentityNotificationTopic',
+        properties: {
+          Identity: props.identity,
+          NotificationType: notificationType,
+          TopicArn: this.notificationTopicArn
+        }
+      });
+    }
 
     new cdk.CfnOutput(this, 'SESIdentityARN', { value: this.identityArn });
     new cdk.CfnOutput(this, 'SESNotificationTopicARN', { value: this.notificationTopicArn });

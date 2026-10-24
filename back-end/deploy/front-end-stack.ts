@@ -4,8 +4,6 @@ import * as S3 from 'aws-cdk-lib/aws-s3';
 import * as IAM from 'aws-cdk-lib/aws-iam';
 import * as CloudFront from 'aws-cdk-lib/aws-cloudfront';
 import * as ACM from 'aws-cdk-lib/aws-certificatemanager';
-import * as Route53 from 'aws-cdk-lib/aws-route53';
-import * as Route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import { RemovalPolicy } from 'aws-cdk-lib';
 
 export interface FrontEndProps extends cdk.StackProps {
@@ -31,17 +29,10 @@ export class FrontEndStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'S3BucketName', { value: frontEndBucket.bucketName });
 
-    const zone = Route53.HostedZone.fromLookup(this, 'HostedZone', {
-      domainName: props.domain.split('.').slice(-2).join('.')
-    });
-
-    const certificate = props.certificateARN
-      ? ACM.Certificate.fromCertificateArn(this, 'CloudFrontCertificate', props.certificateARN)
-      : new ACM.DnsValidatedCertificate(this, 'Certificate', {
-          domainName: props.domain,
-          hostedZone: zone,
-          region: 'us-east-1'
-        });
+    if (!props.certificateARN) {
+      throw new Error(`Missing CloudFront certificate ARN for ${props.domain}`);
+    }
+    const certificate = ACM.Certificate.fromCertificateArn(this, 'CloudFrontCertificate', props.certificateARN);
 
     const frontEndDistributionOAI = new CloudFront.OriginAccessIdentity(this, 'DistributionOAI', {
       comment: `OAI for https://${props.domain}`
@@ -78,10 +69,6 @@ export class FrontEndStack extends cdk.Stack {
       })
     );
 
-    new Route53.ARecord(this, 'DomainRecord', {
-      zone: zone,
-      recordName: props.domain,
-      target: Route53.RecordTarget.fromAlias(new Route53Targets.CloudFrontTarget(frontEndDistribution))
-    });
+    new cdk.CfnOutput(this, 'CloudFrontDomainName', { value: frontEndDistribution.distributionDomainName });
   }
 }
