@@ -59,6 +59,7 @@ The suggested IDE is [Visual Studio Code](https://code.visualstudio.com/); we in
    - `PROJECT`: choose a key to identify the project and its resources. **Try not to use a key too simple, to avoid naming-overlapping on global resources**. An optimal name would be something like: _esn-assembly-italy_. **Please use only smaller case letters and dashes to avoid uncompatibility issues later on.**
    - `DOMAIN`: the domain name you purchased/imported earlier. Example: _esn-assembly-italy.link_.
    - `PROD_CUSTOM_DOMAIN`: set it to `null`, following the example in the comment next to the constant.
+   - If your domain's DNS is managed outside AWS, follow the [external DNS deployment guide](./EXTERNAL-DNS.md) before deploying. Set `DNS_MODE` to `external`.
 1. Configure the following two deploy scripts, by setting the necessary variables:
 
    - `/back-end/deploy.sh`:
