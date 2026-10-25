@@ -17,6 +17,29 @@ export AWS_PAGER=""
 # set the script to exit in case of errors
 set -o errexit
 
+# Resolve the AWS CLI in native shells and in Git Bash/WSL on Windows.
+AWS_CLI='aws'
+if ! command -v "${AWS_CLI}" >/dev/null 2>&1
+then
+  for candidate in \
+    'aws.exe' \
+    '/c/Program Files/Amazon/AWSCLIV2/aws.exe' \
+    '/mnt/c/Program Files/Amazon/AWSCLIV2/aws.exe' \
+    '/mnt/c/Users/'"${USERNAME}"'/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe'
+  do
+    if command -v "${candidate}" >/dev/null 2>&1 || [ -x "${candidate}" ]
+    then
+      AWS_CLI="${candidate}"
+      break
+    fi
+  done
+fi
+if ! command -v "${AWS_CLI}" >/dev/null 2>&1 && [ ! -x "${AWS_CLI}" ]
+then
+  echo "AWS CLI not found. Install it and ensure it is available on PATH." >&2
+  exit 1
+fi
+
 # parameters validation
 if [ "${ACTION}" != "dev" ] && [ "${ACTION}" != "prod" ]
 then
@@ -44,20 +67,20 @@ npm run lint ${SRC_FOLDER} 1>/dev/null
 
 # compile the project's typescript code
 echo -e "${C}Compiling...${NC}"
-ionic build --prod 1>/dev/null
+npx ng build --configuration production 1>/dev/null
 
 # get the target CloudFront distribution and S3 bucket (from the domain)
-DISTRIBUTION=`aws cloudfront list-distributions --query "DistributionList.Items[*].{Id: Id, Aliases: Aliases.Items[?(@ == '${DOMAIN}')]} | [?Aliases].[Id]" --profile ${AWS_PROFILE} --output text`
-BUCKET=`aws cloudfront get-distribution --id ${DISTRIBUTION} --profile ${AWS_PROFILE} --output text \
+DISTRIBUTION=`"${AWS_CLI}" cloudfront list-distributions --query "DistributionList.Items[*].{Id: Id, Aliases: Aliases.Items[?(@ == '${DOMAIN}')]} | [?Aliases].[Id]" --profile ${AWS_PROFILE} --output text`
+BUCKET=`"${AWS_CLI}" cloudfront get-distribution --id ${DISTRIBUTION} --profile ${AWS_PROFILE} --output text \
  --query "Distribution.DistributionConfig.Origins.Items[0].DomainName" | cut -d "." -f 1`
 
 # upload the project's files to the S3 bucket
 echo -e "${C}Uploading...${NC}"
-aws s3 sync ./www s3://${BUCKET} --profile ${AWS_PROFILE} --delete --exclude ".well-known/*" 1>/dev/null
+"${AWS_CLI}" s3 sync ./www s3://${BUCKET} --profile ${AWS_PROFILE} --delete --exclude ".well-known/*" 1>/dev/null
 
 # invalidate old common files from the CloudFront distribution
 echo -e "${C}Cleaning...${NC}"
-aws cloudfront create-invalidation --profile ${AWS_PROFILE} --distribution-id ${DISTRIBUTION} \
+"${AWS_CLI}" cloudfront create-invalidation --profile ${AWS_PROFILE} --distribution-id ${DISTRIBUTION} \
   --paths "/index.html" "/assets/i18n*" \
   1>/dev/null
 
