@@ -70,9 +70,19 @@ echo -e "${C}Compiling...${NC}"
 npx ng build --configuration production 1>/dev/null
 
 # get the target CloudFront distribution and S3 bucket (from the domain)
-DISTRIBUTION=`"${AWS_CLI}" cloudfront list-distributions --query "DistributionList.Items[*].{Id: Id, Aliases: Aliases.Items[?(@ == '${DOMAIN}')]} | [?Aliases].[Id]" --profile ${AWS_PROFILE} --output text`
+DISTRIBUTION=`"${AWS_CLI}" cloudfront list-distributions --query "DistributionList.Items[?contains(Aliases.Items, '${DOMAIN}')].Id | [0]" --profile ${AWS_PROFILE} --output text | tr -d '\r'`
+if [ -z "${DISTRIBUTION}" ] || [ "${DISTRIBUTION}" == "None" ]
+then
+  echo "No CloudFront distribution found for ${DOMAIN}." >&2
+  exit 1
+fi
 BUCKET=`"${AWS_CLI}" cloudfront get-distribution --id ${DISTRIBUTION} --profile ${AWS_PROFILE} --output text \
- --query "Distribution.DistributionConfig.Origins.Items[0].DomainName" | cut -d "." -f 1`
+ --query "Distribution.DistributionConfig.Origins.Items[0].DomainName" | tr -d '\r' | cut -d "." -f 1`
+if [ -z "${BUCKET}" ] || [ "${BUCKET}" == "None" ]
+then
+  echo "No S3 bucket found for CloudFront distribution ${DISTRIBUTION}." >&2
+  exit 1
+fi
 
 # upload the project's files to the S3 bucket
 echo -e "${C}Uploading...${NC}"
